@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { UserCircle, Lock, LogIn, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function Login() {
@@ -8,19 +9,25 @@ export default function Login() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage({ type: "", text: "" });
-    
+
+    if (!form.username.trim() || !form.password.trim()) {
+      setMessage({ type: "error", text: "Username and password are required" });
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", form);
-      localStorage.setItem("token", res.data.token);
+      login(res.data.token, res.data.user);
       setMessage({ type: "success", text: "Login successful! Redirecting..." });
-      setTimeout(() => navigate("/dashboard"), 1000);
+      setTimeout(() => navigate("/dashboard"), 500);
     } catch (err) {
       setMessage({ 
         type: "error", 

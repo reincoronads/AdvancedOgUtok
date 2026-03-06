@@ -147,6 +147,13 @@ export default function Landing() {
                   View Demo
                 </Button>
               </div>
+
+              {/* Guest Access Link */}
+              <div className="mt-6">
+                <Link to="/guest" className="text-sm text-gray-500 hover:text-blue-600 transition-colors font-medium">
+                  Have an invitation code? <span className="underline">Access as Guest</span>
+                </Link>
+              </div>
               
               <div className="mt-12 flex justify-center items-center gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
                  {/* Mock Logos */}

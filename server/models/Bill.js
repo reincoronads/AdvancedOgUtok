@@ -7,10 +7,11 @@ const billSchema = new mongoose.Schema({
   participants: [
     {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      role: { type: String, enum: ["host", "member"], default: "member" }
+      role: { type: String, enum: ["host", "member", "guest"], default: "member" }
     }
   ],
-  status: { type: String, enum: ["active", "archived"], default: "active" }
+  status: { type: String, enum: ["active", "archived"], default: "active" },
+  archivedAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Bill", billSchema);
