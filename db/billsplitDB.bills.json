@@ -1,0 +1,38 @@
+[{
+  "_id": {
+    "$oid": "69a1e1cdcbdc67ad5c59b630"
+  },
+  "billName": "Dinner at IT Park",
+  "hostId": {
+    "$oid": "69a1ddbeac7943f7f5d06bdc"
+  },
+  "inviteCode": "7R514V",
+  "participants": [
+    {
+      "userId": {
+        "$oid": "69a1ddbeac7943f7f5d06bdc"
+      },
+      "role": "host",
+      "_id": {
+        "$oid": "69a1e1cdcbdc67ad5c59b631"
+      }
+    },
+    {
+      "userId": {
+        "$oid": "69a1de09ac7943f7f5d06be0"
+      },
+      "role": "member",
+      "_id": {
+        "$oid": "69a1e2fba10c97c8ea0ae847"
+      }
+    }
+  ],
+  "status": "active",
+  "createdAt": {
+    "$date": "2026-02-27T18:26:21.729Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-27T18:31:23.249Z"
+  },
+  "__v": 1
+}]

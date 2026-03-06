@@ -1,0 +1,41 @@
+[{
+  "_id": {
+    "$oid": "69a1e4a2e8b40238563a636f"
+  },
+  "billId": {
+    "$oid": "69a1e1cdcbdc67ad5c59b630"
+  },
+  "expenseName": "Pizza",
+  "amount": 1200,
+  "paidBy": {
+    "$oid": "69a1ddbeac7943f7f5d06bdc"
+  },
+  "splitType": "equal",
+  "splitBetween": [
+    {
+      "userId": {
+        "$oid": "69a1ddbeac7943f7f5d06bdc"
+      },
+      "shareAmount": 600,
+      "_id": {
+        "$oid": "69a1e4a2e8b40238563a6370"
+      }
+    },
+    {
+      "userId": {
+        "$oid": "69a1de09ac7943f7f5d06be0"
+      },
+      "shareAmount": 600,
+      "_id": {
+        "$oid": "69a1e4a2e8b40238563a6371"
+      }
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-02-27T18:38:26.292Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-27T18:38:26.292Z"
+  },
+  "__v": 0
+}]

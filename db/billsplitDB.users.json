@@ -1,0 +1,160 @@
+[{
+  "_id": {
+    "$oid": "69a1ddbeac7943f7f5d06bdc"
+  },
+  "firstName": "Rein",
+  "lastName": "Herman",
+  "nickname": "rein01",
+  "email": "rein@email.com",
+  "username": "reinuser",
+  "password": "$2b$10$4U.j0ZfisF5VUCkE4NOHbuQVjjJgKPRFJsOXBK8SlQH2laT5C8Wce",
+  "accountType": "standard",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-27T18:09:02.230Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-27T18:09:02.230Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1de09ac7943f7f5d06be0"
+  },
+  "firstName": "Maby",
+  "lastName": "Gabs",
+  "nickname": "bayeyt",
+  "email": "mabs@email.com",
+  "username": "mabs",
+  "password": "$2b$10$VO8/zq3ipyXlMyAMz8y0Ou9S//dVx3ADeEVSUq9JDC3acX8NAYLiq",
+  "accountType": "standard",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-27T18:10:17.503Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-27T18:10:17.503Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1e08b47f43df28ee9eb42"
+  },
+  "firstName": "COlina",
+  "lastName": "Yonzon",
+  "nickname": "yoti",
+  "email": "colens@email.com",
+  "username": "colins",
+  "password": "$2b$10$whyw8xm5AkqIiqxIxXv3reC0S95n05N2EboVHGAl8/mSKhW/ZAWVW",
+  "accountType": "standard",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-27T18:20:59.172Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-27T18:20:59.172Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a1e847157deeeebeaa687f"
+  },
+  "firstName": "Ulysses",
+  "lastName": "Gray",
+  "nickname": "Walter Walters",
+  "email": "jefew@mailinator.com",
+  "username": "rapsahbabe",
+  "password": "$2b$10$Hg0Ra54PpG.7updgvl/VduOnpo/JPd6ke8ymPj6nuKC27p6dOMP5y",
+  "accountType": "standard",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-27T18:53:59.475Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-27T18:53:59.475Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a248546bb2b8a1c29b465a"
+  },
+  "firstName": "Leon",
+  "lastName": "Kennedy",
+  "nickname": "adafan123",
+  "email": "leon@email.com",
+  "username": "Skennedy",
+  "password": "$2b$10$yPUKN736pJzKucbEQR8tMOOyKvDi9yulWQWIt/UX2AtIBUFr8OvjK",
+  "accountType": "standard",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-28T01:43:48.821Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-28T01:43:48.821Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a249f5b0e3cdf451f83232"
+  },
+  "firstName": "Albert",
+  "lastName": "Wesker",
+  "nickname": "wesker",
+  "email": "example@email.com",
+  "username": "uroboros",
+  "password": "$2b$10$JoRhfzmDeBclu7lZNeb8PO1ZIbV.9cL0LaSr.zg/nHaaMDsgBa2cO",
+  "accountType": "guest",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-28T01:50:45.563Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-28T01:50:45.563Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a24d78b0e3cdf451f83235"
+  },
+  "firstName": "Chris",
+  "lastName": "Redfield",
+  "nickname": "chris12",
+  "email": "chris@example.com",
+  "username": "chrisredfield",
+  "password": "$2b$10$vEh2QIfsDmfRQYeRjndvN.QExc9x86vHj1BaIkKX82xh4./QN8mIO",
+  "accountType": "guest",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-28T02:05:44.688Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-28T02:05:44.688Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69a261a9b0e3cdf451f83238"
+  },
+  "firstName": "Dacay",
+  "lastName": "Gabriel",
+  "nickname": "mabycolina",
+  "email": "mabycolina@email.com",
+  "username": "sampol",
+  "password": "$2b$10$rDE0ophKLXyJsPnyqd5DyeA8r0e8XmSBCLd64kthzvCnVEXRejgfm",
+  "accountType": "guest",
+  "isEmailVerified": false,
+  "createdAt": {
+    "$date": "2026-02-28T03:31:53.265Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-28T03:31:53.265Z"
+  },
+  "__v": 0
+}]
