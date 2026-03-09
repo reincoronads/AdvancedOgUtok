@@ -6,6 +6,8 @@ import Landing from "./pages/Landing";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword"; // Added this
+import VerifyEmail from "./pages/VerifyEmail";     // Added this
 import GuestAccess from "./pages/GuestAccess";
 import Bills from "./pages/Bills";
 import BillView from "./pages/BillView";
@@ -22,6 +24,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} /> {/* Added this */}
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />     {/* Added this */}
           <Route path="/guest" element={<GuestAccess />} />
 
           {/* Protected dashboard routes */}

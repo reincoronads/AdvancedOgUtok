@@ -37,10 +37,16 @@ const userSchema = new mongoose.Schema({
     enum: ["guest", "standard", "premium"],
     default: "standard"
   },
+  
+  // --- EMAIL VERIFICATION FIELDS ---
   isEmailVerified: {
     type: Boolean,
     default: false
   },
+  emailVerificationToken: {
+    type: String // We will save the random string sent to their email here
+  },
+
   // For tracking Standard user bill creation limits (5/month)
   billsCreatedThisMonth: {
     type: Number,
@@ -61,7 +67,8 @@ const userSchema = new mongoose.Schema({
   guestAccessResetDate: {
     type: Date
   },
-  // For password reset
+  
+  // --- FORGOT PASSWORD FIELDS ---
   resetPasswordToken: {
     type: String
   },
