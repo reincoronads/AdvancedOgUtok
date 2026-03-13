@@ -2,8 +2,16 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
-// Validation helpers
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const hasSpacesOnly = (val) => !val || val.trim().length === 0;
 const isValidPassword = (pw) => {
@@ -15,57 +23,33 @@ const isValidPassword = (pw) => {
   return true;
 };
 
+// Helper to generate 6-digit code
+const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+
 // REGISTER USER
 exports.registerUser = async (req, res) => {
   try {
     const { firstName, lastName, nickname, email, username, password, confirmPassword } = req.body;
 
-    // Required fields
-    if (!firstName || !lastName || !nickname || !email || !username || !password || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+    if (!firstName || !lastName || !nickname || !email || !username || !password || !confirmPassword) return res.status(400).json({ message: "All fields are required" });
+    if (hasSpacesOnly(firstName) || hasSpacesOnly(lastName) || hasSpacesOnly(nickname) || hasSpacesOnly(username)) return res.status(400).json({ message: "Spaces are not valid input" });
+    if (!isValidEmail(email)) return res.status(400).json({ message: "Please enter a valid email address" });
+    if (!isValidPassword(password)) return res.status(400).json({ message: "Password must be 8-16 characters with at least one uppercase, one lowercase, one number, and one special character" });
+    if (password !== confirmPassword) return res.status(400).json({ message: "Passwords do not match" });
 
-    // Spaces-only check
-    if (hasSpacesOnly(firstName) || hasSpacesOnly(lastName) || hasSpacesOnly(nickname) || hasSpacesOnly(username)) {
-      return res.status(400).json({ message: "Spaces are not valid input" });
-    }
-
-    // Email validation
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ message: "Please enter a valid email address" });
-    }
-
-    // Password validation
-    if (!isValidPassword(password)) {
-      return res.status(400).json({
-        message: "Password must be 8-16 characters with at least one uppercase, one lowercase, one number, and one special character"
-      });
-    }
-
-    // Confirm password
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
-    }
-
-    // Check uniqueness
     const existingUsername = await User.findOne({ username });
-    if (existingUsername) {
-      return res.status(400).json({ message: "Username already exists" });
-    }
+    if (existingUsername) return res.status(400).json({ message: "Username already exists" });
     const existingNickname = await User.findOne({ nickname });
-    if (existingNickname) {
-      return res.status(400).json({ message: "Nickname already taken" });
-    }
+    if (existingNickname) return res.status(400).json({ message: "Nickname already taken" });
     const existingEmail = await User.findOne({ email: email.toLowerCase() });
-    if (existingEmail && existingEmail.accountType !== "guest") {
-      return res.status(400).json({ message: "Email already registered" });
-    }
+    if (existingEmail && existingEmail.accountType !== "guest") return res.status(400).json({ message: "Email already registered" });
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Generate a 6-digit verification code
+    const verificationCode = generateCode();
 
     let newUser;
-    // If a guest user with this email exists, upgrade them
     if (existingEmail && existingEmail.accountType === "guest") {
       existingEmail.nickname = nickname;
       existingEmail.username = username;
@@ -73,31 +57,84 @@ exports.registerUser = async (req, res) => {
       existingEmail.accountType = "standard";
       existingEmail.firstName = firstName;
       existingEmail.lastName = lastName;
+      existingEmail.isEmailVerified = false;
+      existingEmail.emailVerificationToken = verificationCode;
       await existingEmail.save();
       newUser = existingEmail;
     } else {
       newUser = await User.create({
-        firstName,
-        lastName,
-        nickname,
-        email: email.toLowerCase(),
-        username,
-        password: hashedPassword,
-        accountType: "standard",
-        isEmailVerified: false
+        firstName, lastName, nickname, email: email.toLowerCase(), username,
+        password: hashedPassword, accountType: "standard", isEmailVerified: false,
+        emailVerificationToken: verificationCode
       });
     }
 
-    res.status(201).json({
-      message: "Registration successful! Welcome to SplitBill. Please check your email for verification. Click here to login.",
-      userId: newUser._id
+    // Send Verification Code Email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: newUser.email,
+      subject: "Your Verification Code - SplitBill",
+      html: `<h2>Welcome to SplitBill!</h2>
+             <p>Your 6-digit verification code is:</p>
+             <h1 style="font-size: 36px; letter-spacing: 4px; color: #4F46E5;">${verificationCode}</h1>
+             <p>Enter this code on the registration screen to verify your account.</p>`
     });
+
+    res.status(201).json({ message: "Verification code sent to your email.", userId: newUser._id });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// REGISTER GUEST USER (invited or added to a bill)
+// VERIFY EMAIL (UPDATED FOR CODE)
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isEmailVerified) return res.status(400).json({ message: "Email is already verified" });
+    if (user.emailVerificationToken !== code) return res.status(400).json({ message: "Invalid or incorrect verification code" });
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Email successfully verified!" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// RESEND VERIFICATION CODE (NEW)
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isEmailVerified) return res.status(400).json({ message: "Email is already verified" });
+
+    const newCode = generateCode();
+    user.emailVerificationToken = newCode;
+    await user.save();
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "New Verification Code - SplitBill",
+      html: `<h2>Verification Code Resent</h2>
+             <p>Your new 6-digit verification code is:</p>
+             <h1 style="font-size: 36px; letter-spacing: 4px; color: #4F46E5;">${newCode}</h1>`
+    });
+
+    res.status(200).json({ message: "A new code has been sent to your email." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// REGISTER GUEST USER
 exports.registerGuest = async (req, res) => {
   try {
     const { firstName, lastName, email } = req.body;
@@ -112,7 +149,6 @@ exports.registerGuest = async (req, res) => {
       return res.status(400).json({ message: "Please enter a valid email address" });
     }
 
-    // Check if email already exists
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {
       return res.status(200).json({ message: "User already exists", user: { id: existing._id, firstName: existing.firstName, lastName: existing.lastName, email: existing.email, accountType: existing.accountType } });
@@ -135,7 +171,7 @@ exports.registerGuest = async (req, res) => {
   }
 };
 
-// UPGRADE GUEST TO REGISTERED (only needs password + username + nickname)
+// UPGRADE GUEST TO REGISTERED
 exports.upgradeGuest = async (req, res) => {
   try {
     const { email, username, nickname, password, confirmPassword } = req.body;
@@ -145,18 +181,14 @@ exports.upgradeGuest = async (req, res) => {
     }
 
     const user = await User.findOne({ email: email.toLowerCase(), accountType: "guest" });
-    if (!user) {
-      return res.status(404).json({ message: "Guest user not found with this email" });
-    }
+    if (!user) return res.status(404).json({ message: "Guest user not found with this email" });
 
     if (!isValidPassword(password)) {
       return res.status(400).json({
         message: "Password must be 8-16 characters with at least one uppercase, one lowercase, one number, and one special character"
       });
     }
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
-    }
+    if (password !== confirmPassword) return res.status(400).json({ message: "Passwords do not match" });
 
     const existingUsername = await User.findOne({ username });
     if (existingUsername) return res.status(400).json({ message: "Username already exists" });
@@ -167,6 +199,7 @@ exports.upgradeGuest = async (req, res) => {
     user.nickname = nickname;
     user.password = await bcrypt.hash(password, 10);
     user.accountType = "standard";
+    user.isEmailVerified = true; // Assuming we trust the guest email here
     await user.save();
 
     res.status(200).json({ message: "Account upgraded successfully! You can now login." });
@@ -190,6 +223,11 @@ exports.loginUser = async (req, res) => {
     }
     if (!user.password) {
       return res.status(400).json({ message: "This account requires upgrade. Please register first." });
+    }
+
+    // Still checking if they verified their email from registration!
+    if (user.isEmailVerified === false) {
+      return res.status(403).json({ message: "Please verify your email before logging in. Check your inbox." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -221,7 +259,77 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// FORGOT PASSWORD - send reset token
+// VERIFY LOGIN OTP
+exports.verifyLogin = async (req, res) => {
+  try {
+    const { username, code } = req.body;
+    
+    if (!username || !code) return res.status(400).json({ message: "Username and code are required" });
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    if (user.emailVerificationToken !== code) {
+      return res.status(400).json({ message: "Invalid or incorrect verification code" });
+    }
+
+    // Clear the token once used successfully
+    user.emailVerificationToken = undefined;
+    await user.save();
+
+    // Generate JWT Token (Actually logging them in now)
+    const token = jwt.sign(
+      { id: user._id, username: user.username, accountType: user.accountType },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      message: "Login successful!",
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname,
+        email: user.email,
+        username: user.username,
+        accountType: user.accountType
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// RESEND LOGIN OTP
+exports.resendLoginCode = async (req, res) => {
+  try {
+    const { username } = req.body;
+    const user = await User.findOne({ username });
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const newCode = generateCode();
+    user.emailVerificationToken = newCode;
+    await user.save();
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "New Login Verification Code - SplitBill",
+      html: `<h2>New Login Attempt</h2>
+             <p>Your new 6-digit login verification code is:</p>
+             <h1 style="font-size: 36px; letter-spacing: 4px; color: #4F46E5;">${newCode}</h1>`
+    });
+
+    res.status(200).json({ message: "A new code has been sent to your email." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// FORGOT PASSWORD - send reset code
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -230,16 +338,45 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ message: "No account found with this email" });
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const resetCode = generateCode();
+    user.resetPasswordToken = resetCode; 
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // In production, send this via email. For now, return the token.
-    res.status(200).json({
-      message: "Password reset token generated. Use it to reset your password.",
-      resetToken
+    // Send Reset Email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Password Reset Code - SplitBill",
+      html: `<h2>Password Reset Request</h2>
+             <p>Your 6-digit password reset code is:</p>
+             <h1 style="font-size: 36px; letter-spacing: 4px; color: #4F46E5;">${resetCode}</h1>
+             <p>This code is valid for 1 hour. If you did not request this, please ignore this email.</p>`
     });
+
+    res.status(200).json({
+      message: "A 6-digit reset code has been sent to your email."
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// VERIFY RESET CODE
+exports.verifyResetCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ message: "Email and code are required" });
+
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      resetPasswordToken: code,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) return res.status(400).json({ message: "Invalid or expired reset code" });
+
+    res.status(200).json({ message: "Code verified successfully!" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -248,27 +385,24 @@ exports.forgotPassword = async (req, res) => {
 // RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
-    const { token, password, confirmPassword } = req.body;
+    const { email, code, password, confirmPassword } = req.body;
 
-    if (!token || !password || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+    if (!email || !code || !password || !confirmPassword) return res.status(400).json({ message: "All fields are required" });
+    
     if (!isValidPassword(password)) {
       return res.status(400).json({
         message: "Password must be 8-16 characters with at least one uppercase, one lowercase, one number, and one special character"
       });
     }
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
-    }
+    if (password !== confirmPassword) return res.status(400).json({ message: "Passwords do not match" });
 
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
+      email: email.toLowerCase(),
+      resetPasswordToken: code,
       resetPasswordExpires: { $gt: Date.now() }
     });
 
-    if (!user) return res.status(400).json({ message: "Invalid or expired reset token" });
+    if (!user) return res.status(400).json({ message: "Invalid or expired reset code" });
 
     user.password = await bcrypt.hash(password, 10);
     user.resetPasswordToken = undefined;
@@ -281,10 +415,10 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// GET CURRENT USER (profile)
+// GET CURRENT USER
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password -resetPasswordToken -resetPasswordExpires");
+    const user = await User.findById(req.user._id).select("-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json(user);
   } catch (error) {
@@ -308,7 +442,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     await user.save();
-    const updated = await User.findById(user._id).select("-password -resetPasswordToken -resetPasswordExpires");
+    const updated = await User.findById(user._id).select("-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken");
     res.status(200).json({ message: "Profile updated", user: updated });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -332,7 +466,7 @@ exports.upgradeToPremium = async (req, res) => {
   }
 };
 
-// SEARCH USERS (for adding to bills)
+// SEARCH USERS
 exports.searchUsers = async (req, res) => {
   try {
     const { q } = req.query;
