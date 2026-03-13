@@ -15,5 +15,6 @@ router.put("/:id/unarchive", authMiddleware, billController.unarchiveBill);
 router.put("/:id/regenerate-code", authMiddleware, billController.regenerateCode);
 router.post("/add-participant", authMiddleware, billController.addParticipant);
 router.post("/remove-participant", authMiddleware, billController.removeParticipant);
+router.post("/send-guest-invite", authMiddleware, billController.sendGuestInvite);
 
 module.exports = router;

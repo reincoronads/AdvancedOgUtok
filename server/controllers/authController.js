@@ -472,7 +472,7 @@ exports.searchUsers = async (req, res) => {
     const { q } = req.query;
 
     let users;
-    const baseFilter = { _id: { $ne: req.user._id }, accountType: { $ne: "guest" } };
+    const baseFilter = { _id: { $ne: req.user._id }, accountType: { $ne: "guest" }, isEmailVerified: true };
     if (!q || q.trim().length < 2) {
       // No query: return recent users (excluding the requester and guests)
       users = await User.find(baseFilter)

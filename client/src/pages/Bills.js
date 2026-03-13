@@ -167,7 +167,15 @@ export default function Bills() {
       const guestRes = await api.post("/auth/register-guest", guestForm);
       const guestId = guestRes.data.user.id;
       await api.post("/bills/add-participant", { billId: showAddGuest._id, userId: guestId });
-      setMsg({ type: "success", text: "Guest added to bill!" });
+
+      // Send invitation email to the guest with the bill's invite code
+      try {
+        await api.post("/bills/send-guest-invite", { billId: showAddGuest._id, guestEmail: email });
+        setMsg({ type: "success", text: "Guest added and invitation email sent!" });
+      } catch {
+        setMsg({ type: "success", text: "Guest added! (Invitation email could not be sent)" });
+      }
+
       setShowAddGuest(null);
       setGuestForm({ firstName: "", lastName: "", email: "" });
       fetchBills();
@@ -260,16 +268,18 @@ export default function Bills() {
               <input type="text" placeholder="Search users by name, email, or username..." value={searchQuery} onChange={e => handleSearch(e.target.value)} className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" autoFocus />
             </div>
             <div className="max-h-48 overflow-y-auto space-y-2">
-              {searchResults.map(u => (
-                <div key={u._id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{u.firstName} {u.lastName}</p>
-                    <p className="text-xs text-gray-500">{u.email} {u.accountType === "guest" && "(Guest)"}</p>
+              {searchResults
+                .filter(u => u.accountType !== "guest" && !showAddPerson.participants.some(p => p.userId?._id === u._id))
+                .map(u => (
+                  <div key={u._id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{u.firstName} {u.lastName}</p>
+                      <p className="text-xs text-gray-500">{u.email}</p>
+                    </div>
+                    <button onClick={() => handleAddParticipant(showAddPerson._id, u._id)} className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700">Add</button>
                   </div>
-                  <button onClick={() => handleAddParticipant(showAddPerson._id, u._id)} className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700">Add</button>
-                </div>
-              ))}
-              {searchResults.length === 0 && (
+                ))}
+              {searchResults.filter(u => u.accountType !== "guest" && !showAddPerson.participants.some(p => p.userId?._id === u._id)).length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-4">No users found</p>
               )}
             </div>
