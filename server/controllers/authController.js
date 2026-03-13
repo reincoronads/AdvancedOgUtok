@@ -130,6 +130,7 @@ exports.registerGuest = async (req, res) => {
       user: { id: guest._id, firstName: guest.firstName, lastName: guest.lastName, email: guest.email, accountType: guest.accountType }
     });
   } catch (error) {
+    console.error("registerGuest error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -335,17 +336,27 @@ exports.upgradeToPremium = async (req, res) => {
 exports.searchUsers = async (req, res) => {
   try {
     const { q } = req.query;
-    if (!q || q.trim().length < 2) return res.status(400).json({ message: "Search query must be at least 2 characters" });
 
-    const users = await User.find({
-      $or: [
-        { firstName: { $regex: q, $options: "i" } },
-        { lastName: { $regex: q, $options: "i" } },
-        { email: { $regex: q, $options: "i" } },
-        { nickname: { $regex: q, $options: "i" } },
-        { username: { $regex: q, $options: "i" } }
-      ]
-    }).select("firstName lastName email nickname username accountType").limit(10);
+    let users;
+    const baseFilter = { _id: { $ne: req.user._id }, accountType: { $ne: "guest" } };
+    if (!q || q.trim().length < 2) {
+      // No query: return recent users (excluding the requester and guests)
+      users = await User.find(baseFilter)
+        .select("firstName lastName email nickname username accountType")
+        .sort({ createdAt: -1 })
+        .limit(10);
+    } else {
+      users = await User.find({
+        ...baseFilter,
+        $or: [
+          { firstName: { $regex: q, $options: "i" } },
+          { lastName: { $regex: q, $options: "i" } },
+          { email: { $regex: q, $options: "i" } },
+          { nickname: { $regex: q, $options: "i" } },
+          { username: { $regex: q, $options: "i" } }
+        ]
+      }).select("firstName lastName email nickname username accountType").limit(10);
+    }
 
     res.status(200).json(users);
   } catch (error) {

@@ -125,10 +125,18 @@ export default function Bills() {
     clearMsg();
   };
 
+  // LOAD INITIAL USERS (when modal opens)
+  const loadInitialUsers = async () => {
+    try {
+      const res = await api.get("/auth/search");
+      setSearchResults(res.data);
+    } catch {}
+  };
+
   // SEARCH USERS
   const handleSearch = async (q) => {
     setSearchQuery(q);
-    if (q.length < 2) { setSearchResults([]); return; }
+    if (q.length < 2) { loadInitialUsers(); return; }
     try {
       const res = await api.get(`/auth/search?q=${encodeURIComponent(q)}`);
       setSearchResults(res.data);
@@ -195,7 +203,12 @@ export default function Bills() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">My Bills</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">My Bills</h2>
+          {user?.accountType === "standard" && (
+            <p className="text-xs text-gray-500 mt-1">{bills.filter(b => b.hostId?._id === user?._id).length} / 5 bills created this month</p>
+          )}
+        </div>
         <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
           <Plus className="w-4 h-4" /> Create Bill
         </button>
@@ -246,7 +259,7 @@ export default function Bills() {
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <input type="text" placeholder="Search users by name, email, or username..." value={searchQuery} onChange={e => handleSearch(e.target.value)} className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" autoFocus />
             </div>
-            <div className="max-h-60 overflow-y-auto space-y-2">
+            <div className="max-h-48 overflow-y-auto space-y-2">
               {searchResults.map(u => (
                 <div key={u._id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100">
                   <div>
@@ -256,7 +269,7 @@ export default function Bills() {
                   <button onClick={() => handleAddParticipant(showAddPerson._id, u._id)} className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700">Add</button>
                 </div>
               ))}
-              {searchQuery.length >= 2 && searchResults.length === 0 && (
+              {searchResults.length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-4">No users found</p>
               )}
             </div>
@@ -265,6 +278,9 @@ export default function Bills() {
               <button onClick={() => { setShowAddPerson(null); setShowAddGuest(showAddPerson); setSearchQuery(""); setSearchResults([]); }} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
                 <UserPlus className="w-4 h-4" /> Add Guest User Instead
               </button>
+              {user?.accountType === "standard" && showAddPerson && showAddPerson.participants.length >= 3 && (
+                <p className="text-xs text-red-500 mt-2">Standard accounts are limited to 3 people per bill (including host & guests).</p>
+              )}
             </div>
           </div>
         </div>
@@ -326,7 +342,10 @@ export default function Bills() {
               <div className="mb-3">
                 <div className="flex items-center gap-1 mb-2">
                   <Users className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs font-medium text-gray-500">{bill.participants.length} participant{bill.participants.length !== 1 ? "s" : ""}</span>
+                  <span className="text-xs font-medium text-gray-500">
+                    {bill.participants.length} participant{bill.participants.length !== 1 ? "s" : ""}
+                    {user?.accountType === "standard" && bill.hostId?._id === user?._id && " (max 3)"}
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {bill.participants.map((p, i) => (
@@ -354,7 +373,12 @@ export default function Bills() {
                     <button onClick={() => { setShowEdit(bill); setEditName(bill.billName); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
                       <Pencil className="w-4 h-4" /> Edit
                     </button>
-                    <button onClick={() => setShowAddPerson(bill)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 text-sm font-medium transition-colors">
+                    <button
+                      onClick={() => { setShowAddPerson(bill); loadInitialUsers(); }}
+                      disabled={user?.accountType === "standard" && bill.participants.length >= 3}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${user?.accountType === "standard" && bill.participants.length >= 3 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
+                      title={user?.accountType === "standard" && bill.participants.length >= 3 ? "Standard accounts are limited to 3 people per bill" : "Add a person to this bill"}
+                    >
                       <UserPlus className="w-4 h-4" /> Add Person
                     </button>
                     <button onClick={() => handleArchive(bill._id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-600 hover:bg-yellow-100 text-sm font-medium transition-colors">

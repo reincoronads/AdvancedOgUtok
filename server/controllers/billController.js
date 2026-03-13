@@ -4,15 +4,14 @@ const User = require("../models/User");
 // Helper: generate invite code
 const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
-// Helper: check and reset monthly bill limit
-const checkBillLimit = async (user) => {
+// Helper: count bills created this month by a user
+const countBillsThisMonth = async (userId) => {
   const now = new Date();
-  const resetDate = new Date(user.billLimitResetDate || 0);
-  if (now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
-    user.billsCreatedThisMonth = 0;
-    user.billLimitResetDate = now;
-    await user.save();
-  }
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  return Bill.countDocuments({
+    hostId: userId,
+    createdAt: { $gte: startOfMonth }
+  });
 };
 
 // CREATE BILL
@@ -27,8 +26,8 @@ exports.createBill = async (req, res) => {
 
     // Standard users: max 5 bills/month
     if (user.accountType === "standard") {
-      await checkBillLimit(user);
-      if (user.billsCreatedThisMonth >= 5) {
+      const billsThisMonth = await countBillsThisMonth(user._id);
+      if (billsThisMonth >= 5) {
         return res.status(403).json({ message: "Standard users can create max 5 bills per month. Upgrade to premium for unlimited!" });
       }
     }
@@ -40,12 +39,6 @@ exports.createBill = async (req, res) => {
       inviteCode,
       participants: [{ userId: req.user._id, role: "host" }]
     });
-
-    // Increment monthly count
-    if (user.accountType === "standard") {
-      user.billsCreatedThisMonth += 1;
-      await user.save();
-    }
 
     res.status(201).json({ message: "Bill created successfully", bill });
   } catch (error) {
@@ -227,10 +220,10 @@ exports.addParticipant = async (req, res) => {
     const exists = bill.participants.some(p => p.userId.toString() === userId);
     if (exists) return res.status(400).json({ message: "User already added to this bill" });
 
-    // Standard user: max 3 persons per bill (including host)
+    // Standard user: max 3 persons per bill (including host and any guests)
     const host = await User.findById(req.user._id);
     if (host.accountType === "standard" && bill.participants.length >= 3) {
-      return res.status(403).json({ message: "Standard users can add max 3 persons per bill. Upgrade to premium!" });
+      return res.status(403).json({ message: "Standard users can have max 3 people per bill (including host & guests). Upgrade to premium!" });
     }
 
     const addedUser = await User.findById(userId);
