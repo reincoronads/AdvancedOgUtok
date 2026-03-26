@@ -65,7 +65,6 @@ export default function Bills() {
       clearMsg();
     } catch (err) {
       const serverMsg = err.response?.data?.message || "Error creating bill";
-      // If user hit the monthly bill limit (standard account), show error inside the create modal
       if (err.response?.status === 403) {
         setCreateError(serverMsg);
       } else {
@@ -167,8 +166,6 @@ export default function Bills() {
     }
     clearMsg();
   };
-
-  
 
   // REMOVE PARTICIPANT
   const handleRemoveParticipant = async (billId, userId) => {
@@ -280,7 +277,7 @@ export default function Bills() {
         </div>
       )}
 
-      {/* Bills List */}
+      {/* Bills List — 2-column grid */}
       {bills.length === 0 ? (
         <div className="text-center py-20">
           <Receipt className="w-16 h-16 mx-auto text-gray-300 mb-4" />
@@ -288,7 +285,7 @@ export default function Bills() {
           <p className="text-gray-400 text-sm mt-1">Create your first bill to get started!</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {bills.map(bill => (
             <div key={bill._id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-3">

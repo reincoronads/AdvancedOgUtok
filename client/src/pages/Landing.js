@@ -60,6 +60,14 @@ export default function Landing() {
     document.title = "SplitBill | Home";
   }, []);
 
+  // Updated function to handle scrolling to any section dynamically
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const features = [
     {
       name: "Group Expenses",
@@ -97,9 +105,10 @@ export default function Landing() {
               <span className="font-bold text-xl tracking-tight text-slate-800">SplitBill</span>
             </div>
             <div className="hidden md:flex space-x-8">
-              <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium">Features</a>
-              <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium">How it works</a>
-              <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium">Pricing</a>
+              {/* Updated navigation links to scroll to sections */}
+              <a href="#features-section" onClick={(e) => { e.preventDefault(); scrollToSection('features-section'); }} className="text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium">Features</a>
+              <a href="#demo-section" onClick={(e) => { e.preventDefault(); scrollToSection('demo-section'); }} className="text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium">How it works</a>
+              <a href="#pricing-section" onClick={(e) => { e.preventDefault(); scrollToSection('pricing-section'); }} className="text-gray-500 hover:text-blue-600 transition-colors text-sm font-medium">Pricing</a>
             </div>
             <div className="flex items-center gap-4">
               <a href="/login" className="hidden md:block text-sm font-medium text-gray-700 hover:text-blue-600">Log in</a>
@@ -140,10 +149,12 @@ export default function Landing() {
                 Stop worrying about who owes what. Register today for free.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Button className="text-lg px-8 py-4">
-                  Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button variant="outline" className="text-lg px-8 py-4">
+                <Link to="/register">
+                  <Button className="text-lg px-8 py-4">
+                    Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+                </Link>
+                <Button variant="outline" className="text-lg px-8 py-4" onClick={() => scrollToSection('demo-section')}>
                   View Demo
                 </Button>
               </div>
@@ -166,7 +177,7 @@ export default function Landing() {
         </section>
 
         {/* Feature Section 1: Dashboard */}
-        <section className="py-24 bg-gray-50 overflow-hidden">
+        <section id="demo-section" className="py-24 bg-gray-50 overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
               <motion.div 
@@ -197,7 +208,9 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Button>Start Tracking</Button>
+                <Link to="/register">
+                  <Button>Start Tracking</Button>
+                </Link>
               </motion.div>
               
               <motion.div 
@@ -240,7 +253,7 @@ export default function Landing() {
                   Create specific groups for trips, apartments, or events and share bills easily.
                 </p>
                 <div className="flex gap-4">
-                  <Button variant="outline">Learn More</Button>
+                  <Button variant="outline" onClick={() => scrollToSection('features-section')}>Learn More</Button>
                 </div>
               </motion.div>
               
@@ -263,7 +276,7 @@ export default function Landing() {
         </section>
 
         {/* Gradient Feature Grid */}
-        <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-24 relative overflow-hidden">
+        <section id="features-section" className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-24 relative overflow-hidden">
           {/* Abstract Shapes */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-overlay filter blur-[100px] opacity-20"></div>
@@ -293,7 +306,7 @@ export default function Landing() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-white">
+        <section id="pricing-section" className="py-20 bg-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-blue-600 rounded-3xl p-8 md:p-16 text-center shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-500 rounded-full opacity-50 blur-3xl"></div>
@@ -304,9 +317,11 @@ export default function Landing() {
                 <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
                   Join thousands of users who are already simplifying their shared expenses.
                 </p>
-                <Button variant="white" className="px-10 py-4 text-lg shadow-lg">
-                  Create Free Account
-                </Button>
+                <Link to="/register">
+                  <Button variant="white" className="px-10 py-4 text-lg shadow-lg">
+                    Create Free Account
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -332,9 +347,9 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold text-slate-900 mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-gray-500">
-                <li><a href="#" className="hover:text-blue-600">Features</a></li>
+                <li><a href="#features-section" onClick={(e) => { e.preventDefault(); scrollToSection('features-section'); }} className="hover:text-blue-600">Features</a></li>
                 <li><a href="#" className="hover:text-blue-600">Security</a></li>
-                <li><a href="#" className="hover:text-blue-600">Pricing</a></li>
+                <li><a href="#pricing-section" onClick={(e) => { e.preventDefault(); scrollToSection('pricing-section'); }} className="hover:text-blue-600">Pricing</a></li>
               </ul>
             </div>
             

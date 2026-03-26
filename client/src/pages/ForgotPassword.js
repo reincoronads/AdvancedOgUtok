@@ -132,7 +132,7 @@ export default function ForgotPassword() {
         {step === 3 && (
           <>
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full mb-4 shadow-lg">
                 <Lock className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl font-bold text-gray-800">Set New Password</h2>
@@ -154,7 +154,7 @@ export default function ForgotPassword() {
                   <input type="password" placeholder="Confirm new password" value={passwords.confirmPassword} onChange={(e) => setPasswords({...passwords, confirmPassword: e.target.value})} required className={inputClass} />
                 </div>
               </div>
-              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transform hover:scale-[1.02] transition-all disabled:opacity-50 shadow-lg">
+              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transform hover:scale-[1.02] transition-all disabled:opacity-50 shadow-lg">
                 {loading ? "Updating..." : "Update Password"}
               </button>
             </form>

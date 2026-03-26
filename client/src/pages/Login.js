@@ -42,8 +42,19 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
-      <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-md relative">
         
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="absolute top-6 left-6 text-gray-500 hover:text-gray-800 flex items-center transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back
+        </button>
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full mb-4 shadow-lg">

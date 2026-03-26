@@ -93,8 +93,19 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
-      <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-2xl">
+      <div className="bg-white p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-2xl relative">
         
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="absolute top-6 left-6 text-gray-500 hover:text-gray-800 flex items-center transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back
+        </button>
+
         {/* STEP 1: Registration Form */}
         {step === 1 && (
           <>

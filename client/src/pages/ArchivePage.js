@@ -61,7 +61,7 @@ export default function ArchivePage() {
           <p className="text-gray-400 text-sm mt-1">Bills you archive will appear here</p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {bills.map(bill => (
             <div key={bill._id} className="bg-white rounded-xl border border-gray-200 p-5 opacity-80 hover:opacity-100 transition-opacity">
               <div className="flex items-start justify-between mb-3">
