@@ -3,6 +3,7 @@ const router = express.Router();
 const billController = require("../controllers/billController");
 const authMiddleware = require("../middleware/authMiddleware");
 
+router.post("/join", billController.joinBill); // public — guest self-join
 router.post("/create", authMiddleware, billController.createBill);
 router.get("/", authMiddleware, billController.getBills);
 router.get("/archived", authMiddleware, billController.getArchivedBills);

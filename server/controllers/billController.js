@@ -15,6 +15,46 @@ const countBillsThisMonth = async (userId) => {
   });
 };
 
+// JOIN BILL AS GUEST (public — guest self-registration)
+exports.joinBill = async (req, res) => {
+  try {
+    const { inviteCode, firstName, lastName, email } = req.body;
+    if (!inviteCode || !firstName || !lastName || !email) {
+      return res.status(400).json({ message: "inviteCode, firstName, lastName, and email are required" });
+    }
+
+    const bill = await Bill.findOne({ inviteCode: inviteCode.trim().toUpperCase() });
+    if (!bill) return res.status(404).json({ message: "No bill found with this invitation code" });
+    if (bill.status === "archived") return res.status(403).json({ message: "This bill is archived and no longer accepting new participants" });
+
+    // Find or create guest user
+    let guest = await User.findOne({ email: email.toLowerCase() });
+    if (!guest) {
+      guest = await User.create({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.toLowerCase(), accountType: "guest" });
+    }
+
+    // Already a participant — just return the bill
+    const alreadyIn = bill.participants.some(p => p.userId.toString() === guest._id.toString());
+    if (!alreadyIn) {
+      // Standard host: max 3 participants per bill
+      const host = await User.findById(bill.hostId);
+      if (host.accountType === "standard" && bill.participants.length >= 3) {
+        return res.status(403).json({ message: "This bill has reached its participant limit" });
+      }
+      bill.participants.push({ userId: guest._id, role: "guest" });
+      await bill.save();
+    }
+
+    const populated = await Bill.findById(bill._id)
+      .populate("hostId", "firstName lastName nickname")
+      .populate("participants.userId", "firstName lastName nickname email accountType");
+
+    res.status(200).json({ message: "Joined bill", bill: populated, guestId: guest._id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // CREATE BILL
 exports.createBill = async (req, res) => {
   try {

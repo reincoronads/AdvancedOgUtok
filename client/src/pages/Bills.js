@@ -27,13 +27,15 @@ export default function Bills() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(null);
   const [showAddPerson, setShowAddPerson] = useState(null);
-  const [showAddGuest, setShowAddGuest] = useState(null);
   const [billName, setBillName] = useState("");
+  const [createError, setCreateError] = useState("");
   const [editName, setEditName] = useState("");
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [guestForm, setGuestForm] = useState({ firstName: "", lastName: "", email: "" });
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: "", message: "", onConfirm: null });
+
+  const showConfirm = (title, message, onConfirm) => setConfirmModal({ open: true, title, message, onConfirm });
 
   const fetchBills = async () => {
     try {
@@ -60,10 +62,17 @@ export default function Bills() {
       setShowCreate(false);
       setMsg({ type: "success", text: "Bill created!" });
       fetchBills();
+      clearMsg();
     } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || "Error creating bill" });
+      const serverMsg = err.response?.data?.message || "Error creating bill";
+      // If user hit the monthly bill limit (standard account), show error inside the create modal
+      if (err.response?.status === 403) {
+        setCreateError(serverMsg);
+      } else {
+        setMsg({ type: "error", text: serverMsg });
+        clearMsg();
+      }
     }
-    clearMsg();
   };
 
   // EDIT BILL
@@ -82,16 +91,17 @@ export default function Bills() {
   };
 
   // DELETE BILL
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this bill?")) return;
-    try {
-      await api.delete(`/bills/${id}`);
-      setMsg({ type: "success", text: "Bill deleted" });
-      fetchBills();
-    } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || "Error deleting bill" });
-    }
-    clearMsg();
+  const handleDelete = (id) => {
+    showConfirm("Delete Bill", "This bill and all its expenses will be permanently deleted. This cannot be undone.", async () => {
+      try {
+        await api.delete(`/bills/${id}`);
+        setMsg({ type: "success", text: "Bill deleted" });
+        fetchBills();
+      } catch (err) {
+        setMsg({ type: "error", text: err.response?.data?.message || "Error deleting bill" });
+      }
+      clearMsg();
+    });
   };
 
   // ARCHIVE BILL
@@ -158,32 +168,7 @@ export default function Bills() {
     clearMsg();
   };
 
-  // ADD GUEST
-  const handleAddGuest = async (e) => {
-    e.preventDefault();
-    const { firstName, lastName, email } = guestForm;
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) return;
-    try {
-      const guestRes = await api.post("/auth/register-guest", guestForm);
-      const guestId = guestRes.data.user.id;
-      await api.post("/bills/add-participant", { billId: showAddGuest._id, userId: guestId });
-
-      // Send invitation email to the guest with the bill's invite code
-      try {
-        await api.post("/bills/send-guest-invite", { billId: showAddGuest._id, guestEmail: email });
-        setMsg({ type: "success", text: "Guest added and invitation email sent!" });
-      } catch {
-        setMsg({ type: "success", text: "Guest added! (Invitation email could not be sent)" });
-      }
-
-      setShowAddGuest(null);
-      setGuestForm({ firstName: "", lastName: "", email: "" });
-      fetchBills();
-    } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || "Error adding guest" });
-    }
-    clearMsg();
-  };
+  
 
   // REMOVE PARTICIPANT
   const handleRemoveParticipant = async (billId, userId) => {
@@ -217,7 +202,7 @@ export default function Bills() {
             <p className="text-xs text-gray-500 mt-1">{bills.filter(b => b.hostId?._id === user?._id).length} / 5 bills created this month</p>
           )}
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+        <button onClick={() => { setCreateError(""); setShowCreate(true); }} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
           <Plus className="w-4 h-4" /> Create Bill
         </button>
       </div>
@@ -228,10 +213,13 @@ export default function Bills() {
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-800">Create New Bill</h3>
-              <button onClick={() => setShowCreate(false)}><X className="w-5 h-5 text-gray-400" /></button>
+              <button onClick={() => { setShowCreate(false); setCreateError(""); }}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <form onSubmit={handleCreate}>
-              <input type="text" placeholder="Bill name" value={billName} onChange={e => setBillName(e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none" autoFocus />
+              <input type="text" placeholder="Bill name" value={billName} onChange={e => { setBillName(e.target.value); setCreateError(""); }} className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" autoFocus />
+              {createError && (
+                <p className="text-xs text-red-500 mb-3">{createError}</p>
+              )}
               <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">Create</button>
             </form>
           </div>
@@ -269,7 +257,7 @@ export default function Bills() {
             </div>
             <div className="max-h-48 overflow-y-auto space-y-2">
               {searchResults
-                .filter(u => u.accountType !== "guest" && !showAddPerson.participants.some(p => p.userId?._id === u._id))
+                .filter(u => !showAddPerson.participants.some(p => p.userId?._id === u._id))
                 .map(u => (
                   <div key={u._id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100">
                     <div>
@@ -279,37 +267,15 @@ export default function Bills() {
                     <button onClick={() => handleAddParticipant(showAddPerson._id, u._id)} className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700">Add</button>
                   </div>
                 ))}
-              {searchResults.filter(u => u.accountType !== "guest" && !showAddPerson.participants.some(p => p.userId?._id === u._id)).length === 0 && (
+              {searchResults.filter(u => !showAddPerson.participants.some(p => p.userId?._id === u._id)).length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-4">No users found</p>
               )}
             </div>
-            {/* Add guest button */}
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <button onClick={() => { setShowAddPerson(null); setShowAddGuest(showAddPerson); setSearchQuery(""); setSearchResults([]); }} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
-                <UserPlus className="w-4 h-4" /> Add Guest User Instead
-              </button>
               {user?.accountType === "standard" && showAddPerson && showAddPerson.participants.length >= 3 && (
                 <p className="text-xs text-red-500 mt-2">Standard accounts are limited to 3 people per bill (including host & guests).</p>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Guest Modal */}
-      {showAddGuest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Add Guest User</h3>
-              <button onClick={() => setShowAddGuest(null)}><X className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            <form onSubmit={handleAddGuest} className="space-y-3">
-              <input type="text" placeholder="First Name" value={guestForm.firstName} onChange={e => setGuestForm({ ...guestForm, firstName: e.target.value })} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-              <input type="text" placeholder="Last Name" value={guestForm.lastName} onChange={e => setGuestForm({ ...guestForm, lastName: e.target.value })} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-              <input type="email" placeholder="Email Address" value={guestForm.email} onChange={e => setGuestForm({ ...guestForm, email: e.target.value })} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-              <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">Add Guest</button>
-            </form>
           </div>
         </div>
       )}
@@ -359,10 +325,10 @@ export default function Bills() {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {bill.participants.map((p, i) => (
-                    <span key={i} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${p.role === "host" ? "bg-blue-100 text-blue-700" : p.role === "guest" ? "bg-gray-100 text-gray-600" : "bg-green-100 text-green-700"}`}>
+                    <span key={i} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${p.role === "host" ? "bg-blue-100 text-blue-700" : p.userId?.accountType === "guest" ? "bg-gray-100 text-gray-600" : "bg-green-100 text-green-700"}`}>
                       {p.userId?.firstName} {p.userId?.lastName}
                       {p.role === "host" && " (Host)"}
-                      {p.role === "guest" && " (Guest)"}
+                      {p.role === "guest" && p.userId?.accountType === "guest" && " (Guest)"}
                       {p.role !== "host" && bill.hostId?._id === user?._id && (
                         <button onClick={() => handleRemoveParticipant(bill._id, p.userId?._id)} className="ml-1 hover:text-red-500">
                           <X className="w-3 h-3" />
@@ -378,30 +344,40 @@ export default function Bills() {
                 <button onClick={() => navigate(`/dashboard/bill/${bill._id}`)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm font-medium transition-colors">
                   <Eye className="w-4 h-4" /> View
                 </button>
-                {bill.hostId?._id === user?._id && (
-                  <>
-                    <button onClick={() => { setShowEdit(bill); setEditName(bill.billName); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
-                      <Pencil className="w-4 h-4" /> Edit
-                    </button>
-                    <button
-                      onClick={() => { setShowAddPerson(bill); loadInitialUsers(); }}
-                      disabled={user?.accountType === "standard" && bill.participants.length >= 3}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${user?.accountType === "standard" && bill.participants.length >= 3 ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
-                      title={user?.accountType === "standard" && bill.participants.length >= 3 ? "Standard accounts are limited to 3 people per bill" : "Add a person to this bill"}
-                    >
-                      <UserPlus className="w-4 h-4" /> Add Person
-                    </button>
-                    <button onClick={() => handleArchive(bill._id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-600 hover:bg-yellow-100 text-sm font-medium transition-colors">
-                      <Archive className="w-4 h-4" /> Archive
-                    </button>
-                    <button onClick={() => handleDelete(bill._id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors">
-                      <Trash2 className="w-4 h-4" /> Delete
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            {/* Icon header */}
+            <div className="flex flex-col items-center px-6 pt-8 pb-4">
+              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1 text-center">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-500 text-center leading-relaxed">{confirmModal.message}</p>
+            </div>
+            {/* Buttons */}
+            <div className="flex border-t border-gray-100">
+              <button
+                onClick={() => setConfirmModal({ open: false, title: "", message: "", onConfirm: null })}
+                className="flex-1 py-3.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors border-r border-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { confirmModal.onConfirm(); setConfirmModal({ open: false, title: "", message: "", onConfirm: null }); }}
+                className="flex-1 py-3.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

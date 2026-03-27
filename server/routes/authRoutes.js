@@ -11,6 +11,7 @@ router.post("/resend-verification", authController.resendVerification);
 // ----------------------------
 
 router.post("/register-guest", authMiddleware, authController.registerGuest);
+router.post("/guest-register", authController.registerGuest); // public — for guest self-registration
 router.post("/upgrade-guest", authController.upgradeGuest);
 router.post("/login", authController.loginUser);
 router.post("/verify-login", authController.verifyLogin);

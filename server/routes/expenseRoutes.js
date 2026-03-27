@@ -5,6 +5,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 router.post("/add", authMiddleware, expenseController.addExpense);
 router.get("/bill/:billId", authMiddleware, expenseController.getExpenses);
+router.get("/public/bill/:billId", expenseController.getExpenses); // public — for guest view
 router.delete("/:id", authMiddleware, expenseController.deleteExpense);
 
 module.exports = router;
