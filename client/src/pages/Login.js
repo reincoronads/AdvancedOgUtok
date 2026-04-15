@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UserCircle, Lock, LogIn, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -9,7 +9,10 @@ export default function Login() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
+
+  // Redirect already-logged-in users to dashboard
+  if (!authLoading && user) return <Navigate to="/dashboard" replace />;
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -46,7 +49,7 @@ export default function Login() {
         
         {/* Back Button */}
         <button 
-          onClick={() => navigate(-1)} 
+          onClick={() => navigate("/")} 
           className="absolute top-6 left-6 text-gray-500 hover:text-gray-800 flex items-center transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

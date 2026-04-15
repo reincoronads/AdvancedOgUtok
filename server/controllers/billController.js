@@ -129,6 +129,12 @@ exports.getBillByCode = async (req, res) => {
 
     // Guest identification and 6hr daily limit enforcement
     if (email) {
+      // Check if the email belongs to a registered (non-guest) user first
+      const registeredUser = await User.findOne({ email: email.toLowerCase(), accountType: { $in: ["standard", "premium"] } });
+      if (registeredUser) {
+        return res.status(403).json({ message: "This email belongs to a registered account. Please log in instead.", registeredUser: true });
+      }
+
       const guest = await User.findOne({ email: email.toLowerCase(), accountType: "guest" });
 
       if (!guest) {

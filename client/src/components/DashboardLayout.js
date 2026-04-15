@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Wallet,
-  Crown
+  Crown,
+  Clock
 } from "lucide-react";
 
 const navItems = [
@@ -24,6 +25,61 @@ export default function DashboardLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+
+  const INACTIVITY_LIMIT = 30_000; // 30 seconds
+  const WARNING_BEFORE = 5_000;    // warn 5 seconds before logout
+
+  const logoutTimer = useRef(null);
+  const warningTimer = useRef(null);
+  const countdownInterval = useRef(null);
+
+  const doLogout = useCallback(() => {
+    logout();
+    navigate("/login");
+  }, [logout, navigate]);
+
+  const resetTimers = useCallback(() => {
+    // If warning is showing, hide it
+    setShowTimeoutWarning(false);
+    clearTimeout(logoutTimer.current);
+    clearTimeout(warningTimer.current);
+    clearInterval(countdownInterval.current);
+
+    // Start warning timer
+    warningTimer.current = setTimeout(() => {
+      setShowTimeoutWarning(true);
+      setCountdown(5);
+      let c = 5;
+      countdownInterval.current = setInterval(() => {
+        c -= 1;
+        setCountdown(c);
+        if (c <= 0) clearInterval(countdownInterval.current);
+      }, 1000);
+    }, INACTIVITY_LIMIT - WARNING_BEFORE);
+
+    // Start logout timer
+    logoutTimer.current = setTimeout(() => {
+      doLogout();
+    }, INACTIVITY_LIMIT);
+  }, [doLogout]);
+
+  // Attach activity listeners
+  useEffect(() => {
+    const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
+    const handleActivity = () => resetTimers();
+
+    events.forEach(e => window.addEventListener(e, handleActivity));
+    resetTimers(); // start on mount
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handleActivity));
+      clearTimeout(logoutTimer.current);
+      clearTimeout(warningTimer.current);
+      clearInterval(countdownInterval.current);
+    };
+  }, [resetTimers]);
 
   const handleLogout = () => {
     logout();
@@ -38,6 +94,27 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Inactivity Warning Modal */}
+      {showTimeoutWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-yellow-100 rounded-full mb-4">
+              <Clock className="w-7 h-7 text-yellow-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Session Expiring</h3>
+            <p className="text-gray-500 text-sm mb-4">
+              You've been inactive. You will be logged out in{" "}
+              <span className="font-bold text-red-600">{countdown}</span> second{countdown !== 1 ? "s" : ""}.
+            </p>
+            <button
+              onClick={resetTimers}
+              className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Stay Logged In
+            </button>
+          </div>
+        </div>
+      )}
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setSidebarOpen(false)} />

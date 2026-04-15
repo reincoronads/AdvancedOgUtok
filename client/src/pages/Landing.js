@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -56,9 +57,14 @@ const FeatureCard = ({ icon: Icon, title, description }) => (
 // --- Main Page Component ---
 
 export default function Landing() {
+  const { user, loading: authLoading } = useAuth();
+
   useEffect(() => {
     document.title = "SplitBill | Home";
   }, []);
+
+  // Redirect already-logged-in users to dashboard
+  if (!authLoading && user) return <Navigate to="/dashboard" replace />;
 
   // Updated function to handle scrolling to any section dynamically
   const scrollToSection = (id) => {
